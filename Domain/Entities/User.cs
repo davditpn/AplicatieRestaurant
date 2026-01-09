@@ -10,10 +10,18 @@ public abstract class User
     public string Username { get; protected set; }
     public string Password { get; protected set; }
     public UserRole Role { get; protected set; }
-
-    protected User(string username, string password, UserRole role)
+    
+    protected User(string username, string password, UserRole role) //constructor pt creare unde id-ul se da automat
     {
         Id = Guid.NewGuid();
+        Username = username;
+        Password = password;
+        Role = role;
+    }
+
+    protected User(Guid id, string username, string password, UserRole role) //constructor pt json cand exista deja un id
+    {
+        Id = id;
         Username = username;
         Password = password;
         Role = role;
