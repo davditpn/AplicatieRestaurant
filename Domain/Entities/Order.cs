@@ -46,4 +46,24 @@ public class Order
         Items.Add(new OrderItem(dish.Id, dish.Name, dish.Price, quantity));
         RecalculateTotal();
     }
+
+    public void MarkAsPreparing()
+    {
+        Status = OrderStatus.Preparing;
+    }
+
+    public void MarkAsReady()
+    {
+        Status = OrderStatus.Ready;
+    }
+
+    public void CompleteOrder()
+    {
+        Status = OrderStatus.Completed;
+    }
+
+    private void RecalculateTotal()
+    {
+        TotalPrice = Items.Sum(i => i.Price * i.Quantity);
+    }
 }
