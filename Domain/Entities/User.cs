@@ -2,7 +2,7 @@ namespace AplicatieRestaurant.Domain.Entities;
 using System.Text.Json.Serialization;
 using AplicatieRestaurant.Domain.Enums;
 
-[JsonDerivedType(typeof(Client), typeDiscriminator: "client")]
+[JsonDerivedType(typeof(Client), typeDiscriminator: "client")] //pentru serializare si deserializare
 [JsonDerivedType(typeof(Manager), typeDiscriminator: "manager")]
 public abstract class User
 {
