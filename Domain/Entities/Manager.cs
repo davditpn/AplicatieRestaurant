@@ -1,8 +1,6 @@
 namespace AplicatieRestaurant.Domain.Entities;
 
-public class Client
+public class Manager
 {
-    public Client()
-    {}   
     
 }

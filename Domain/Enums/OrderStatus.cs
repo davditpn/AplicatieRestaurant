@@ -1,4 +1,4 @@
-﻿namespace Domain.Enums;
+﻿namespace AplicatieRestaurant.Domain.Enums;
 
 public enum OrderStatus
 {
