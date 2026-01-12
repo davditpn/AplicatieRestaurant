@@ -20,6 +20,9 @@ using (var scope = host.Services.CreateScope())
 {
     var service = scope.ServiceProvider.GetRequiredService<RestaurantService>();
     var userRepo = scope.ServiceProvider.GetRequiredService<IRepository<User>>();
+    
+    SeedData(service, userRepo);
+    RunUI(service, userRepo);
 }   
 
 static void RunUI (RestaurantService service, IRepository<User> userRepo)
