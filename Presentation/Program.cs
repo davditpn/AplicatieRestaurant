@@ -38,3 +38,22 @@ static void RunUI (RestaurantService service, IRepository<User> userRepo)
         if (key == "2") RunManager(service);
     }
 }
+
+static void SeedData(RestaurantService service, IRepository<User> userRepo)
+{
+    if (!service.GetMenu().Any())
+    {
+        Console.WriteLine("Seeding Menu...");
+        service.AddDish("Pizza Margherita", 35,DishCategory.MainCourse);
+        service.AddDish("Burger Vita", 45, DishCategory.MainCourse);
+        service.AddDish("Papanasi",25,DishCategory.Dessert);
+        service.AddDish("Limonada",15,DishCategory.Beverage);
+    }
+
+    if (!userRepo.GetAll().Any())
+    {
+        Console.WriteLine("Seeding Users...");
+        userRepo.Add(new Client("client1","pass","Acasa"));
+        userRepo.Add(new Manager("admin","admin"));
+    }
+}
