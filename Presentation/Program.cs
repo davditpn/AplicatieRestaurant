@@ -124,6 +124,76 @@ static void RunClient(RestaurantService service, IRepository<User> userRepo)
     }
 }
 
+static void RunManager(RestaurantService service)
+{
+    while (true)
+    {
+        Console.Clear();
+        Console.WriteLine("--- PANOU MANAGER ---");
+        var orders=service.GetAllOrders().OrderByDescending(o=>o.CreatedAt).ToList();
+        if (!orders.Any())
+        {
+            Console.WriteLine("Nu exista comenzi active.");
+        }
+        else
+        {
+            foreach (var ord in orders)
+            {
+                Console.WriteLine($"ID: {ord.Id}");
+                Console.WriteLine($"Data: {ord.CreatedAt.ToLocalTime()} | Status: {ord.Status} | Total: {ord.TotalPrice} RON");
+                Console.WriteLine("Produse:");
+                foreach (var item in ord.Items)
+                {
+                    Console.WriteLine($"   - {item.Quantity}x {item.DishName}");
+                }
+                Console.WriteLine(new string('-',30));
+            }
+        }
+        Console.WriteLine("\nActiuni:");
+        Console.WriteLine("1. Modifica Status Comanda");
+        Console.WriteLine("0. Inapoi la Meniul Principal");
+        Console.Write("> ");
+        var choice = Console.ReadLine();
+        if(choice=="0") break;
+        if (choice == "1")
+        {
+            Console.WriteLine("Introduceti ID-ul comenzii:");
+            var idStr = Console.ReadLine();
+            if (Guid.TryParse(idStr, out Guid orderId))
+            {
+                Console.WriteLine("Status: 1.Preparing, 2.Ready, 3.Completed, 4.Canceled");
+                var sInput = Console.ReadLine();
+                OrderStatus? newStatus = sInput switch
+                {
+                    "1" => OrderStatus.Preparing,
+                    "2" => OrderStatus.Ready,
+                    "3" => OrderStatus.Completed,
+                    "4" => OrderStatus.Canceled,
+                    _ => null
+                };
+                if(newStatus.HasValue)
+                    service.UpdateOrderStatus(orderId, newStatus.Value);
+            }
+        }
+
+        if (choice == "2")
+        {
+            Console.WriteLine("Introduceti ID-ul comenzii de sters:");
+            var idStr=Console.ReadLine();
+            if (Guid.TryParse(idStr, out Guid orderId))
+            {
+                Console.Write("Sigur doriti sa stergeti? (da/nu): ");
+                if (Console.ReadLine()?.ToLower() == "da")
+                {
+                    service.DeleteOrder(orderId);
+                    Console.WriteLine("Comanda a fost stearsa.");
+                    Console.ReadLine();
+                }
+            }
+        }
+    }
+}
+
 static void SeedData(RestaurantService service, IRepository<User> userRepo)
 {
     if (!service.GetMenu().Any())
