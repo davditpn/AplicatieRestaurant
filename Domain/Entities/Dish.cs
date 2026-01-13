@@ -1,10 +1,15 @@
+using AplicatieRestaurant.Domain.Enums;
 using AplicatieRestaurant.Domain.Interfaces;
 
-namespace AplicatieRestaurant.Domain.Entities;
-using System.Text.Json.Serialization;
-using AplicatieRestaurant.Domain.Enums;
+namespace RestaurantApp.Domain.Entities;
 
-public record Ingredient(string Name, string Unit);
+public class RecipeItem
+{
+    public Guid IngredientId { get; set; }
+    public string IngredientName { get; set; }
+    public double QuantityRequired { get; set; }
+}
+
 public record Dish : IEntity
 {
     public Guid Id { get; init; } = Guid.NewGuid();
@@ -12,26 +17,17 @@ public record Dish : IEntity
     public string Description { get; init; }
     public decimal Price { get; init; }
     public DishCategory Category { get; init; }
-    public IReadOnlyList<Ingredient> Ingredients { get; init; }
+    
+    public List<RecipeItem> Recipe { get; init; } = new();
 
-    public Dish(string name, string description, decimal price, DishCategory category, List<Ingredient> ingredients)
+    public Dish() { }
+
+    public Dish(string name, string description, decimal price, DishCategory category, List<RecipeItem> recipe)
     {
         Name = name;
         Description = description;
         Price = price;
         Category = category;
-        Ingredients = ingredients.AsReadOnly();
-    }
-
-    [JsonConstructor]
-    public Dish(Guid id, string name, string description, decimal price, DishCategory category,
-        List<Ingredient> ingredients)
-    {
-        Id = id;
-        Name = name;
-        Description = description;
-        Price = price;
-        Category = category;
-        Ingredients = ingredients ?? new List<Ingredient>();
+        Recipe = recipe;
     }
 }

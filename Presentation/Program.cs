@@ -6,11 +6,15 @@ using AplicatieRestaurant.Domain.Entities;
 using AplicatieRestaurant.Domain.Enums;
 using AplicatieRestaurant.Domain.Interfaces;
 using AplicatieRestaurant.Infrastructure;
+using AplicatieRestaurant.Infrastructure.Repositories;
+using RestaurantApp.Application;
+using RestaurantApp.Domain.Entities;
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
         services.AddInfrastructure();
+        services.AddSingleton<IRepository<Ingredient>>(provider => new FileRepository<Ingredient>("ingredients.json"));
         services.AddApplication();
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
     })
@@ -20,256 +24,112 @@ using (var scope = host.Services.CreateScope())
 {
     var service = scope.ServiceProvider.GetRequiredService<RestaurantService>();
     var userRepo = scope.ServiceProvider.GetRequiredService<IRepository<User>>();
-    
-    SeedData(service, userRepo);
+    var ingRepo = scope.ServiceProvider.GetRequiredService<IRepository<Ingredient>>();
+
+    SeedData(service, userRepo, ingRepo);
     RunApp(service, userRepo);
-}   
+}
+
 static void RunApp(RestaurantService service, IRepository<User> userRepo)
 {
     while (true)
     {
         Console.Clear();
-        Console.WriteLine("=== RESTAURANT APP - BINE ATI VENIT ===");
-        Console.WriteLine("1. Authentification (Login)");
-        Console.WriteLine("2. Register New Client (Sign Up)");
+        Console.WriteLine("=== RESTAURANT APP (Cu Stocuri) ===");
+        Console.WriteLine("1. Login");
+        Console.WriteLine("2. Sign Up");
         Console.WriteLine("0. Exit");
-        Console.WriteLine("Alege optiunea: ");
-        
-        var input  = Console.ReadLine();
+        Console.Write("> ");
+        var input = Console.ReadLine();
 
         if (input == "0") break;
-        if (input == "1") HandleLogin(service,  userRepo);
+        if (input == "1") HandleLogin(service, userRepo);
         if (input == "2") HandleRegister(service);
     }
 }
 
 static void HandleLogin(RestaurantService service, IRepository<User> userRepo)
 {
-    Console.WriteLine("\n--- LOGIN ---");
-    Console.Write("Username: ");
-    var user = Console.ReadLine();
-    Console.Write("Password: ");
-    var password = Console.ReadLine();
-    
-    var loggedUser = service.Login(user, password);
+    Console.Write("User: "); var u = Console.ReadLine();
+    Console.Write("Pass: "); var p = Console.ReadLine();
+    var user = service.Login(u, p);
 
-    if (loggedUser == null)
-    {
-        Console.WriteLine($"❌ {user} nu exista sau parola este gresita! Apasa Enter!");
-        Console.ReadLine();
-        return;
-    }
-    
-    Console.WriteLine($"✅ Autentificat ca: {loggedUser.Username} ({loggedUser.Role})");
-    Thread.Sleep(1000);
+    if (user == null) { Console.WriteLine("Login failed!"); Console.ReadLine(); return; }
 
-    if (loggedUser is Manager manager)
-    {
-        RunManagerMenu(service, userRepo);
-    }
-    else if (loggedUser is Client client)
-    {
-        RunClientMenu(service, client);
-    }
+    if (user is Manager) RunManagerMenu(service, userRepo);
+    else if (user is Client c) RunClientMenu(service, c);
 }
 
 static void HandleRegister(RestaurantService service)
 {
-    Console.WriteLine("\n--- SIGN UP ---");
-    Console.WriteLine("Username dorit: ");
-    var user = Console.ReadLine();
-    if (string.IsNullOrWhiteSpace(user)) return;
-    
-    Console.Write("Parola: ");
-    var password = Console.ReadLine();
-    
-    Console.WriteLine("Adresa de livrare: ");
-    var address = Console.ReadLine();
-    
-    bool success = service.RegisterClient(user, password, address);
-
-    if (success)
-    {
-        Console.WriteLine("✅ Cont creat! Te poti loga acum.");
-    }
-    else
-    {
-        Console.WriteLine("❌ Eroare: Username-ul exista deja!");
-    }
-    Console.WriteLine("\nApasa Enter!");
+    Console.Write("User nou: "); var u = Console.ReadLine();
+    Console.Write("Pass: "); var p = Console.ReadLine();
+    Console.Write("Adresa: "); var a = Console.ReadLine();
+    if (service.RegisterClient(u, p, a)) Console.WriteLine("Success! Enter.");
+    else Console.WriteLine("User existent.");
     Console.ReadLine();
 }
 
-static void HandleMenuManagement(RestaurantService service)
+static void RunClientMenu(RestaurantService service, Client client)
 {
+    var cart = new Dictionary<Guid, int>();
+    
     while (true)
     {
         Console.Clear();
-        Console.WriteLine("--- GESTIONARE MENIU ---");
-        
-        var menu = service.GetMenu().OrderBy(d => d.Category).ToList();
-        
-        Console.WriteLine(string.Format("{0,-5} | {1,-20} | {2,-10} | {3}", "ID", "Nume", "Pret", "Categorie"));
-        Console.WriteLine(new string('-', 60));
-        
-        var localMap = new Dictionary<int, Dish>();
+        Console.WriteLine($"Client: {client.Username} | Coș: {cart.Count} produse");
+        Console.WriteLine("--- MENIU ---");
+
+        var menu = service.GetMenu().ToList();
+        var menuMap = new Dictionary<int, Dish>();
         int idx = 1;
 
         foreach (var dish in menu)
         {
-            string catRo = dish.Category switch {
-                DishCategory.Appetizer => "Aperitiv",
-                DishCategory.MainCourse => "Fel P.",
-                DishCategory.Dessert => "Desert",
-                DishCategory.Beverage => "Bautura",
-                _ => dish.Category.ToString()
-            };
-
-            Console.WriteLine($"{idx,-5} | {dish.Name,-20} | {dish.Price,-10} | {catRo}");
-            localMap[idx] = dish;
-            idx++;
-        }
-
-        Console.WriteLine("\nOptiuni:");
-        Console.WriteLine("A. Adauga Produs Nou");
-        Console.WriteLine("M. Modifica Produs");
-        Console.WriteLine("S. Sterge Produs");
-        Console.WriteLine("0. Inapoi");
-        Console.Write("> ");
-        
-        var input = Console.ReadLine()?.ToUpper();
-
-        if (input == "0") break;
-        
-        if (input == "A")
-        {
-            Console.Write("Nume produs: ");
-            var name = Console.ReadLine();
-            Console.Write("Pret: ");
-            decimal.TryParse(Console.ReadLine(), out decimal price);
+            bool available = service.IsDishAvailable(dish);
+            string status = available ? "" : " (INDISPONIBIL - Lipsa ingrediente)";
             
-            Console.WriteLine("Categorie: 1.Aperitiv, 2.Fel Principal, 3.Desert, 4.Bautura");
-            var catInput = Console.ReadLine();
-            DishCategory cat = catInput switch {
-                "1" => DishCategory.Appetizer,
-                "2" => DishCategory.MainCourse,
-                "3" => DishCategory.Dessert,
-                "4" => DishCategory.Beverage,
-                _ => DishCategory.MainCourse
-            };
-
-            service.AddDish(name, price, cat);
-            Console.WriteLine("Produs adaugat! Enter.");
-            Console.ReadLine();
+            Console.ForegroundColor = available ? ConsoleColor.Green : ConsoleColor.Red;
+            Console.WriteLine($"{idx}. {dish.Name} - {dish.Price} RON {status}");
+            Console.ResetColor();
+            
+            menuMap[idx++] = dish;
         }
-        
-        if (input == "S")
-        {
-            Console.Write("Introduce numarul produsului (din lista de sus): ");
-            if (int.TryParse(Console.ReadLine(), out int sel) && localMap.ContainsKey(sel))
-            {
-                service.RemoveDish(localMap[sel].Id);
-                Console.WriteLine("Produs sters! Enter.");
-                Console.ReadLine();
-            }
-        }
-        
-        if (input == "M")
-        {
-            Console.Write("Numar produs de modificat: ");
-            if (int.TryParse(Console.ReadLine(), out int sel) && localMap.ContainsKey(sel))
-            {
-                var oldDish = localMap[sel];
-                
-                Console.WriteLine($"\nModifici: {oldDish.Name}");
-                Console.WriteLine("(Lasa gol si apasa Enter pentru a pastra valoarea veche)");
 
-                Console.Write($"Nume nou [{oldDish.Name}]: ");
-                var newName = Console.ReadLine();
-                if (string.IsNullOrWhiteSpace(newName)) newName = oldDish.Name;
-
-                Console.Write($"Pret nou [{oldDish.Price}]: ");
-                var priceInput = Console.ReadLine();
-                decimal newPrice = oldDish.Price;
-                if (!string.IsNullOrWhiteSpace(priceInput)) decimal.TryParse(priceInput, out newPrice);
-
-                Console.WriteLine($"Categorie curenta: {oldDish.Category}");
-                Console.WriteLine("Categorie noua (1.Ap, 2.Main, 3.Des, 4.Baut) sau Enter pt neschimbat:");
-                var catInput = Console.ReadLine();
-                DishCategory newCat = oldDish.Category;
-                if (!string.IsNullOrWhiteSpace(catInput))
-                {
-                     newCat = catInput switch {
-                        "1" => DishCategory.Appetizer,
-                        "2" => DishCategory.MainCourse,
-                        "3" => DishCategory.Dessert,
-                        "4" => DishCategory.Beverage,
-                        _ => oldDish.Category
-                    };
-                }
-
-                service.UpdateDish(oldDish.Id, newName, newPrice, newCat);
-                Console.WriteLine("Produs actualizat! Enter.");
-                Console.ReadLine();
-            }
-        }
-    }
-}
-
-static void RunClientMenu(RestaurantService service, Client currentClient)
-{
-    var menu = service.GetMenu().ToList();
-    var menuMap = new Dictionary<int, Dish>();
-    int idx = 1;
-    
-    foreach (var d in menu)
-    {
-        menuMap[idx++] = d;
-    }
-    
-    var cart = new Dictionary<Guid, int>();
-
-    while (true)
-    {
-        Console.Clear();
-        Console.WriteLine($"--- MENIU CLIENT: {currentClient.Username} ---");
-        Console.WriteLine($"Adresa de livrare: {currentClient.DeliveryAddress}");
-        Console.WriteLine("------------------------------");
-
-        foreach (var kvp in menuMap)
-        {
-            Console.WriteLine($"{kvp.Key}. {kvp.Value.Name} - {kvp.Value.Price} RON");
-        }
-        Console.WriteLine("0. Finalizeaza Comanda / Logout");
-        
-        if(cart.Any()) Console.WriteLine($"\n[Cos]: {cart.Count} produse.");
-        
-        Console.Write("\nAlege produs (nr): ");
+        Console.WriteLine("0. Comandă / Iesi");
+        Console.Write("> ");
         var input = Console.ReadLine();
 
         if (input == "0")
         {
             if (cart.Any())
             {
-                service.PlaceOrder(currentClient.Id, cart);
-                Console.WriteLine("Comanda trimisa! (Enter)");
+                try {
+                    service.PlaceOrder(client.Id, cart);
+                    Console.WriteLine("✅ Comanda plasata! Stocul a fost scazut.");
+                } catch (Exception ex) {
+                    Console.WriteLine($"❌ EROARE: {ex.Message}");
+                }
                 Console.ReadLine();
             }
-
             break;
         }
 
-        if (int.TryParse(input, out int selection) && menuMap.ContainsKey(selection))
+        if (int.TryParse(input, out int sel) && menuMap.ContainsKey(sel))
         {
-            var dish = menuMap[selection];
-            Console.WriteLine($"Cantitate pentru {dish.Name}: ");
-            if (int.TryParse(Console.ReadLine(), out int quantity) && quantity > 0)
+            var dish = menuMap[sel];
+            if (!service.IsDishAvailable(dish))
             {
-                if (!cart.ContainsKey(dish.Id))
-                {
-                    cart[dish.Id] = 0;
-                }
-                cart[dish.Id] += quantity;
+                Console.WriteLine("Acest produs nu este disponibil!");
+                Console.ReadLine();
+                continue;
+            }
+
+            Console.Write("Cantitate: ");
+            if (int.TryParse(Console.ReadLine(), out int q) && q > 0)
+            {
+                if (!cart.ContainsKey(dish.Id)) cart[dish.Id] = 0;
+                cart[dish.Id] += q;
             }
         }
     }
@@ -280,90 +140,222 @@ static void RunManagerMenu(RestaurantService service, IRepository<User> userRepo
     while (true)
     {
         Console.Clear();
-        Console.WriteLine("--- MENIU MANAGER ---");
-        
-        var orders = service.GetAllOrders().OrderByDescending(o => o.CreatedAt).ToList();
-        
-        if(!orders.Any()) Console.WriteLine("Nu exista comenzi");
-        else
-        {
-            foreach (var order in orders)
-            {
-                var clientName = "Necunoscut";
-                var clientUser = userRepo.GetById(order.ClientId);
-                if (clientUser != null)
-                {
-                    clientName = clientUser.Username;
-                }
-                
-                Console.WriteLine($"ORDER: {order.Id}");
-                Console.WriteLine($"CLIENT: {clientName} (ID: {order.ClientId})");
-                Console.WriteLine($"Data: {order.CreatedAt.ToLocalTime()} | Status: {order.Status} | Total: {order.TotalPrice} RON");
-
-                foreach (var item in order.Items)
-                {
-                    Console.WriteLine($"   -{item.Quantity} x {item.DishName}");
-                }
-                
-                Console.WriteLine(new string('-', 40));
-            }
-        }
-        
-        Console.WriteLine("\nACTIUNI:");
-        Console.WriteLine("1. Modifica Status Comanda");
-        Console.WriteLine("2. Sterge Comanda");
-        Console.WriteLine("3. GESTIONARE MENIU (Adauga/Modifica/Sterge Produse)");
+        Console.WriteLine("--- MANAGER ---");
+        Console.WriteLine("1. Vezi Comenzi");
+        Console.WriteLine("2. GESTIONARE MENIU (Preparate)");
+        Console.WriteLine("3. GESTIONARE STOCURI (Ingrediente)");
         Console.WriteLine("0. Logout");
         Console.Write("> ");
-        var choice = Console.ReadLine();
+        var ch = Console.ReadLine();
 
-        if (choice == "0") break;
-
-        if (choice == "1")
-        {
-            Console.Write("ID Comanda: ");
-            if (Guid.TryParse(Console.ReadLine(), out Guid oid))
-            {
-                Console.Write("Status (1.Prep, 2.Ready, 3.Done, 4.Cancel): ");
-                var s =  Console.ReadLine();
-                OrderStatus? status = s switch
-                {
-                    "1" => OrderStatus.Preparing, 
-                    "2" => OrderStatus.Ready, 
-                    "3" => OrderStatus.Completed,
-                    "4" => OrderStatus.Canceled,
-                    _ => null
-                };
-                if(status.HasValue) service.UpdateOrderStatus(oid, status.Value);
-            }
-        }
-
-        if (choice == "2")
-        {
-            Console.Write("ID Comanda: ");
-            if (Guid.TryParse(Console.ReadLine(), out Guid oid)) service.DeleteOrder(oid);
-        }
-        
-        if (choice == "3") HandleMenuManagement(service);
+        if (ch == "0") break;
+        if (ch == "1") ShowOrders(service, userRepo);
+        if (ch == "2") HandleMenuMgmt(service);
+        if (ch == "3") HandleStockMgmt(service);
     }
 }
 
-static void SeedData(RestaurantService service, IRepository<User> userRepo)
+static void HandleStockMgmt(RestaurantService service)
 {
-    if (!service.GetMenu().Any())
+    while (true)
     {
-        Console.WriteLine("Seeding Menu...");
-        service.AddDish("Pizza Margherita", 35,DishCategory.MainCourse);
-        service.AddDish("Burger Vita", 45, DishCategory.MainCourse);
-        service.AddDish("Papanasi",25,DishCategory.Dessert);
-        service.AddDish("Limonada",15,DishCategory.Beverage);
-    }
+        Console.Clear();
+        Console.WriteLine("--- DEPOZIT INGREDIENTE ---");
+        var stock = service.GetInventory().ToList();
+        foreach (var item in stock)
+        {
+            Console.WriteLine($"- {item.Name}: {item.StockQuantity} {item.Unit}");
+        }
 
-    if (!userRepo.GetAll().Any())
+        Console.WriteLine("\n1. Adauga Ingredient Nou");
+        Console.WriteLine("2. Actualizeaza Stoc (Restock)");
+        Console.WriteLine("0. Inapoi");
+        
+        var k = Console.ReadLine();
+        if (k == "0") break;
+
+        if (k == "1")
+        {
+            Console.Write("Nume: "); var n = Console.ReadLine();
+            Console.Write("Unitate (kg/buc): "); var u = Console.ReadLine();
+            Console.Write("Stoc Initial: "); double.TryParse(Console.ReadLine(), out double q);
+            service.AddIngredientToStock(n, u, q);
+        }
+        if (k == "2")
+        {
+            Console.WriteLine("Scrie numele exact al ingredientului:");
+            var name = Console.ReadLine();
+            var item = stock.FirstOrDefault(i => i.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            if (item != null)
+            {
+                Console.Write("Noul stoc total: ");
+                if (double.TryParse(Console.ReadLine(), out double q))
+                    service.UpdateStock(item.Id, q);
+            }
+            else Console.WriteLine("Nu a fost găsit.");
+        }
+    }
+}
+
+static void HandleMenuMgmt(RestaurantService service)
+{
+    while (true)
     {
-        // Manager Default
-        userRepo.Add(new Manager("admin", "admin")); 
-        // Client de test
-        userRepo.Add(new Client("client1", "pass", "Strada Libertatii 1"));
+        Console.Clear();
+        Console.WriteLine("=== GESTIONARE MENIU (Manager) ===");
+        
+        var menu = service.GetMenu().OrderBy(d => d.Category).ToList();
+        
+        var menuMap = new Dictionary<int, Dish>();
+        int index = 1;
+
+        if (!menu.Any())
+        {
+            Console.WriteLine("(!) Meniul este gol momentan.");
+        }
+        else
+        {
+            Console.WriteLine(string.Format("{0,-4} | {1,-20} | {2,-8} | {3,-10} | {4}", "Nr", "Nume", "Pret", "Categorie", "Stare Stoc"));
+            Console.WriteLine(new string('-', 70));
+
+            foreach (var dish in menu)
+            {
+                bool isAvailable = service.IsDishAvailable(dish);
+                string stockStatus = isAvailable ? "OK" : "Lipsa Ingred.";
+
+                Console.WriteLine(string.Format("{0,-4} | {1,-20} | {2,-8} | {3,-10} | {4}", 
+                    index, 
+                    dish.Name, 
+                    dish.Price + " Lei", 
+                    dish.Category,
+                    stockStatus));
+                
+                menuMap[index] = dish;
+                index++;
+            }
+        }
+        Console.WriteLine(new string('-', 70));
+        
+        Console.WriteLine("\nACTIUNI:");
+        Console.WriteLine("[A] - ADAUGA preparat nou");
+        Console.WriteLine("[S] - STERGE un preparat");
+        Console.WriteLine("[0] - Inapoi la meniul principal");
+        Console.Write("> ");
+        
+        var input = Console.ReadLine()?.ToUpper();
+
+        if (input == "0") break;
+        
+        if (input == "A")
+        {
+            Console.WriteLine("\n--- ADAUGARE PREPARAT ---");
+            Console.Write("Nume Produs: "); var name = Console.ReadLine();
+            Console.Write("Pret: "); decimal.TryParse(Console.ReadLine(), out decimal price);
+            
+            Console.WriteLine("Categorie: 1.MainCourse, 2.Appetizer, 3.Dessert, 4.Beverage");
+            var catInput = Console.ReadLine();
+            DishCategory cat = catInput switch {
+                "2" => DishCategory.Appetizer,
+                "3" => DishCategory.Dessert,
+                "4" => DishCategory.Beverage,
+                _ => DishCategory.MainCourse
+            };
+            
+            var recipe = new List<RecipeItem>();
+            var inventory = service.GetInventory().ToList();
+
+            if (!inventory.Any())
+            {
+                Console.WriteLine("⚠️ ATENTIE: Nu ai ingrediente definite in stoc! Preparatul va fi creat fara reteta.");
+            }
+            else
+            {
+                while (true)
+                {
+                    Console.WriteLine("\n-- Adauga ingrediente la reteta --");
+                    for(int i=0; i<inventory.Count; i++) 
+                        Console.WriteLine($"{i+1}. {inventory[i].Name} ({inventory[i].Unit})");
+                    
+                    Console.Write("Alege nr ingredient (sau 0 pt a termina): ");
+                    if (int.TryParse(Console.ReadLine(), out int idx))
+                    {
+                        if (idx == 0) break;
+                        if (idx > 0 && idx <= inventory.Count)
+                        {
+                            var ing = inventory[idx-1];
+                            Console.Write($"Cantitate necesara ({ing.Unit}): ");
+                            if (double.TryParse(Console.ReadLine(), out double qty))
+                            {
+                                recipe.Add(new RecipeItem { IngredientId = ing.Id, IngredientName = ing.Name, QuantityRequired = qty });
+                            }
+                        }
+                    }
+                }
+            }
+
+            service.AddDish(name, price, cat, recipe);
+            Console.WriteLine("✅ Produs adăugat! Apasă Enter.");
+            Console.ReadLine();
+        }
+        
+        if (input == "S")
+        {
+            Console.Write("\nIntroduce NUMARUL produsului de șters (din lista de sus): ");
+            if (int.TryParse(Console.ReadLine(), out int selection) && menuMap.ContainsKey(selection))
+            {
+                var dishToDelete = menuMap[selection];
+                
+                Console.Write($"Sigur stergi '{dishToDelete.Name}'? (da/nu): ");
+                if (Console.ReadLine()?.ToLower() == "da")
+                {
+                    service.RemoveDish(dishToDelete.Id);
+                    Console.WriteLine("Produs sters.");
+                }
+                else
+                {
+                    Console.WriteLine("Anulat.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Numar invalid!");
+            }
+            Console.ReadLine();
+        }
+    }
+}
+
+static void ShowOrders(RestaurantService service, IRepository<User> uRepo)
+{
+    foreach(var o in service.GetAllOrders())
+        Console.WriteLine($"Order {o.Id} - Status: {o.Status}");
+    Console.ReadLine();
+}
+
+static void SeedData(RestaurantService s, IRepository<User> u, IRepository<Ingredient> i)
+{
+    if (!u.GetAll().Any()) u.Add(new Manager("admin", "admin"));
+    
+    if (!i.GetAll().Any())
+    {
+        s.AddIngredientToStock("Faina", "kg", 10);
+        s.AddIngredientToStock("Mozzarella", "kg", 5);
+        s.AddIngredientToStock("Sos Rosii", "l", 5);
+        s.AddIngredientToStock("Apa", "l", 50);
+        s.AddIngredientToStock("Lamai", "buc", 20);
+    }
+    
+    if (!s.GetMenu().Any())
+    {
+        var faina = i.GetAll().First(x => x.Name == "Faina");
+        var mozza = i.GetAll().First(x => x.Name == "Mozzarella");
+        
+        var pizzaRecipe = new List<RecipeItem> 
+        { 
+            new RecipeItem { IngredientId = faina.Id, IngredientName = "Faina", QuantityRequired = 0.2 },
+            new RecipeItem { IngredientId = mozza.Id, IngredientName = "Mozzarella", QuantityRequired = 0.1 }
+        };
+        
+        s.AddDish("Pizza", 30, DishCategory.MainCourse, pizzaRecipe);
     }
 }

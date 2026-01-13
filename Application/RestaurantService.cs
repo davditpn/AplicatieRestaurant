@@ -2,127 +2,145 @@
 using AplicatieRestaurant.Domain.Entities;
 using AplicatieRestaurant.Domain.Enums;
 using AplicatieRestaurant.Domain.Interfaces;
+using RestaurantApp.Domain.Entities;
 
-namespace AplicatieRestaurant.Application;
+namespace RestaurantApp.Application;
 
 public class RestaurantService
 {
     private readonly IRepository<Dish> _dishRepo;
     private readonly IRepository<Order> _orderRepo;
-    private readonly ILogger<RestaurantService> _logger;
     private readonly IRepository<User> _userRepo;
+    private readonly IRepository<Ingredient> _ingredientRepo;
+    private readonly ILogger<RestaurantService> _logger;
 
-    public RestaurantService(IRepository<Dish> dishRepo, IRepository<Order> orderRepo,
-        ILogger<RestaurantService> logger,  IRepository<User> userRepo)
+    public RestaurantService(
+        IRepository<Dish> dishRepo, 
+        IRepository<Order> orderRepo, 
+        IRepository<User> userRepo,
+        IRepository<Ingredient> ingredientRepo,
+        ILogger<RestaurantService> logger)
     {
         _dishRepo = dishRepo;
         _orderRepo = orderRepo;
-        _logger = logger;
         _userRepo = userRepo;
+        _ingredientRepo = ingredientRepo;
+        _logger = logger;
     }
-
+    
     public IEnumerable<Dish> GetMenu() => _dishRepo.GetAll();
     public IEnumerable<Order> GetAllOrders() => _orderRepo.GetAll();
-
-    public void AddDish(string name, decimal price, DishCategory category)
+    public IEnumerable<Ingredient> GetInventory() => _ingredientRepo.GetAll();
+    
+    public void AddIngredientToStock(string name, string unit, double qty)
     {
-        var dish = new Dish(name, "Descriere standard", price, category, new List<Ingredient>());
-        _dishRepo.Add(dish);
-        _logger.LogInformation("Manager: Produs adăugat {Name}", name);
+        var ing = new Ingredient(name, unit, qty);
+        _ingredientRepo.Add(ing);
     }
 
+    public void UpdateStock(Guid ingredientId, double newQty)
+    {
+        var ing = _ingredientRepo.GetById(ingredientId);
+        if (ing != null)
+        {
+            ing.StockQuantity = newQty;
+            _ingredientRepo.Update(ing);
+        }
+    }
+    
+    public bool IsDishAvailable(Dish dish)
+    {
+        foreach (var item in dish.Recipe)
+        {
+            var stockItem = _ingredientRepo.GetById(item.IngredientId);
+            if (stockItem == null || stockItem.StockQuantity < item.QuantityRequired)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    public void AddDish(string name, decimal price, DishCategory category, List<RecipeItem> recipe)
+    {
+        var dish = new Dish(name, "Standard", price, category, recipe);
+        _dishRepo.Add(dish);
+    }
+
+    public void RemoveDish(Guid dishId) => _dishRepo.Delete(dishId);
+    
     public Order PlaceOrder(Guid clientId, Dictionary<Guid, int> cartItems)
     {
+        foreach (var item in cartItems)
+        {
+            var dish = _dishRepo.GetById(item.Key);
+            if (dish == null) continue;
+
+            int quantityOrdered = item.Value;
+            
+            foreach (var recipeItem in dish.Recipe)
+            {
+                var stockItem = _ingredientRepo.GetById(recipeItem.IngredientId);
+                double totalNeeded = recipeItem.QuantityRequired * quantityOrdered;
+
+                if (stockItem == null || stockItem.StockQuantity < totalNeeded)
+                {
+                    throw new Exception($"Stoc insuficient pentru {dish.Name}! Lipsește: {recipeItem.IngredientName}");
+                }
+            }
+        }
+        
+        foreach (var item in cartItems)
+        {
+            var dish = _dishRepo.GetById(item.Key);
+            int qty = item.Value;
+
+            foreach (var recipeItem in dish.Recipe)
+            {
+                var stockItem = _ingredientRepo.GetById(recipeItem.IngredientId)!;
+                stockItem.StockQuantity -= (recipeItem.QuantityRequired * qty);
+                _ingredientRepo.Update(stockItem);
+            }
+        }
+        
         var order = new Order(clientId);
         foreach (var item in cartItems)
         {
             var dish = _dishRepo.GetById(item.Key);
-            if (dish != null) order.AddItem(dish, item.Value);
+            
+            if (dish != null) 
+            {
+                order.AddItem(dish!, item.Value); 
+            }
         }
 
         _orderRepo.Add(order);
-        _logger.LogInformation("Client: Comanda {Id} plasată. Total: {Total}", order.Id, order.TotalPrice);
+        _logger.LogInformation("Comandă plasată...");
         return order;
     }
-
-    public void UpdateOrderStatus(Guid orderId, OrderStatus status)
-    {
-        var order = _orderRepo.GetById(orderId);
-        if (order == null) return;
-
-        if (status == OrderStatus.Preparing) order.MarkAsPreparing();
-        if (status == OrderStatus.Ready) order.MarkAsReady();
-        if (status == OrderStatus.Completed) order.CompleteOrder();
-
-        _orderRepo.Update(order);
-        _logger.LogInformation("Manager: Comanda {Id} -> {Status}", orderId, status);
-    }
-
-    public void DeleteOrder(Guid orderId)
-    {
-        var order = _orderRepo.GetById(orderId);
-        if (order != null)
-        {
-            _orderRepo.Delete(orderId);
-            _logger.LogInformation("Manager: Comanda {Id} a fost ștearsă definitiv", orderId);
-        }
-    }
     
-    
-    
-    //Logica pentru autentificare
     public User? Login(string username, string password)
     {
-        var user = _userRepo.GetAll().FirstOrDefault((u => u.Username == username));
-        if (user != null && user.Password == password)
-        {
-            return user;
-        }
-
-        return null;
+        var user = _userRepo.GetAll().FirstOrDefault(u => u.Username == username);
+        return (user != null && user.Password == password) ? user : null;
     }
 
     public bool RegisterClient(string username, string password, string address)
     {
-        if (_userRepo.GetAll().Any(u => u.Username == username))
-        {
-            return false;
-        }
-
-        var newClient = new Client(username, password, address);
-        _userRepo.Add(newClient);
-        _logger.LogInformation("New Client registered: {Username}", username);
+        if (_userRepo.GetAll().Any(u => u.Username == username)) return false;
+        _userRepo.Add(new Client(username, password, address));
         return true;
     }
-    
-    public void RemoveDish(Guid dishId)
-    {
-        var dish = _dishRepo.GetById(dishId);
-        if (dish != null)
-        {
-            _dishRepo.Delete(dishId);
-            _logger.LogWarning("Manager: Produsul {Name} a fost sters din meniu.", dish.Name);
-        }
-    }
-    
-    public bool UpdateDish(Guid dishId, string newName, decimal newPrice, DishCategory newCategory)
-    {
-        var oldDish = _dishRepo.GetById(dishId);
-        if (oldDish == null) return false;
-        
-        var updatedDish = new Dish(
-            newName, 
-            oldDish.Description,
-            newPrice, 
-            newCategory, 
-            oldDish.Ingredients.ToList()
-        )
-        {
-            Id = dishId 
-        };
 
-        _dishRepo.Update(updatedDish);
-        _logger.LogInformation("Manager: Produs actualizat: {Name}", newName);
-        return true;
+    public void UpdateOrderStatus(Guid id, OrderStatus status) 
+    {
+        var o = _orderRepo.GetById(id);
+        if (o == null) return;
+        if (status == OrderStatus.Preparing) o.MarkAsPreparing();
+        if (status == OrderStatus.Ready) o.MarkAsReady();
+        if (status == OrderStatus.Completed) o.CompleteOrder();
+        _orderRepo.Update(o);
     }
+    
+    public void DeleteOrder(Guid id) => _orderRepo.Delete(id);
 }
