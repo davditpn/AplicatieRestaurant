@@ -2,7 +2,7 @@
 using AplicatieRestaurant.Domain.Interfaces;
 namespace AplicatieRestaurant.Infrastructure.Repositories;
 
-public class FileRepository<T> : IRepository<T> where T : class
+public class FileRepository<T> : IRepository<T> where T : class, IEntity
 {
     private readonly string _filePath;
     private List<T> _items;
@@ -54,29 +54,10 @@ public class FileRepository<T> : IRepository<T> where T : class
 
     public void Delete(Guid id)
     {
-        var listWithoutItem = new List<T>();
-        bool itemWasDeleted = false;
+        int removedCount = _items.RemoveAll(x => x.Id == id);
 
-        foreach (var item in _items)
+        if (removedCount > 0)
         {
-            var prop = item.GetType().GetProperty("Id");
-            if (prop != null)
-            {
-                var currentId = (Guid)prop.GetValue(item)!;
-                
-                if (currentId == id)
-                {
-                    itemWasDeleted = true;
-                    continue; 
-                }
-            }
-            
-            listWithoutItem.Add(item);
-        }
-        
-        if (itemWasDeleted)
-        {
-            _items = listWithoutItem;
             SaveChanges();
         }
     }

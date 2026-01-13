@@ -1,8 +1,10 @@
+using AplicatieRestaurant.Domain.Interfaces;
+
 namespace AplicatieRestaurant.Domain.Entities;
 using System.Text.Json.Serialization;
 using AplicatieRestaurant.Domain.Enums;
 
-public class Order
+public class Order : IEntity
 {
     [JsonInclude]
     public Guid Id { get; private set; }

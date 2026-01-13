@@ -1,9 +1,11 @@
+using AplicatieRestaurant.Domain.Interfaces;
+
 namespace AplicatieRestaurant.Domain.Entities;
 using System.Text.Json.Serialization;
 using AplicatieRestaurant.Domain.Enums;
 
 public record Ingredient(string Name, string Unit);
-public record Dish
+public record Dish : IEntity
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public string Name { get; init; }
