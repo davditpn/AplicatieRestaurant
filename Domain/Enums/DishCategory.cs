@@ -2,8 +2,8 @@
 
 public enum DishCategory
 {
-    Starter,
+    Appetizer,
     MainCourse,
     Dessert,
-    Beverage
+    Beverage 
 }

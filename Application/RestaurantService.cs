@@ -94,4 +94,35 @@ public class RestaurantService
         _logger.LogInformation("New Client registered: {Username}", username);
         return true;
     }
+    
+    public void RemoveDish(Guid dishId)
+    {
+        var dish = _dishRepo.GetById(dishId);
+        if (dish != null)
+        {
+            _dishRepo.Delete(dishId);
+            _logger.LogWarning("Manager: Produsul {Name} a fost sters din meniu.", dish.Name);
+        }
+    }
+    
+    public bool UpdateDish(Guid dishId, string newName, decimal newPrice, DishCategory newCategory)
+    {
+        var oldDish = _dishRepo.GetById(dishId);
+        if (oldDish == null) return false;
+        
+        var updatedDish = new Dish(
+            newName, 
+            oldDish.Description,
+            newPrice, 
+            newCategory, 
+            oldDish.Ingredients.ToList()
+        )
+        {
+            Id = dishId 
+        };
+
+        _dishRepo.Update(updatedDish);
+        _logger.LogInformation("Manager: Produs actualizat: {Name}", newName);
+        return true;
+    }
 }
