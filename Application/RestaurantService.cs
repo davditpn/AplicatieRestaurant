@@ -81,4 +81,17 @@ public class RestaurantService
 
         return null;
     }
+
+    public bool RegisterClient(string username, string password, string address)
+    {
+        if (_userRepo.GetAll().Any(u => u.Username == username))
+        {
+            return false;
+        }
+
+        var newClient = new Client(username, password, address);
+        _userRepo.Add(newClient);
+        _logger.LogInformation("New Client registered: {Username}", username);
+        return true;
+    }
 }
