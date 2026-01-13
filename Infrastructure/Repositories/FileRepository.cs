@@ -54,13 +54,31 @@ public class FileRepository<T> : IRepository<T> where T : class
 
     public void Delete(Guid id)
     {
-        _items.RemoveAll(item =>
+        var listWithoutItem = new List<T>();
+        bool itemWasDeleted = false;
+
+        foreach (var item in _items)
         {
-            var thing = item.GetType().GetProperty("Id");
-            return thing != null && (Guid)thing.GetValue(item)! == id;
-        });
+            var prop = item.GetType().GetProperty("Id");
+            if (prop != null)
+            {
+                var currentId = (Guid)prop.GetValue(item)!;
+                
+                if (currentId == id)
+                {
+                    itemWasDeleted = true;
+                    continue; 
+                }
+            }
+            
+            listWithoutItem.Add(item);
+        }
         
-        SaveChanges();
+        if (itemWasDeleted)
+        {
+            _items = listWithoutItem;
+            SaveChanges();
+        }
     }
 
     private void SaveChanges()
