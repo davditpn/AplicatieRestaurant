@@ -10,13 +10,15 @@ public class RestaurantService
     private readonly IRepository<Dish> _dishRepo;
     private readonly IRepository<Order> _orderRepo;
     private readonly ILogger<RestaurantService> _logger;
+    private readonly IRepository<User> _userRepo;
 
     public RestaurantService(IRepository<Dish> dishRepo, IRepository<Order> orderRepo,
-        ILogger<RestaurantService> logger)
+        ILogger<RestaurantService> logger,  IRepository<User> userRepo)
     {
         _dishRepo = dishRepo;
         _orderRepo = orderRepo;
         _logger = logger;
+        _userRepo = userRepo;
     }
 
     public IEnumerable<Dish> GetMenu() => _dishRepo.GetAll();
@@ -64,5 +66,19 @@ public class RestaurantService
             _orderRepo.Delete(orderId);
             _logger.LogInformation("Manager: Comanda {Id} a fost ștearsă definitiv", orderId);
         }
+    }
+    
+    
+    
+    //Logica pentru autentificare
+    public User? Login(string username, string password)
+    {
+        var user = _userRepo.GetAll().FirstOrDefault((u => u.Username == username));
+        if (user != null && user.Password == password)
+        {
+            return user;
+        }
+
+        return null;
     }
 }
