@@ -54,12 +54,13 @@ public class FileRepository<T> : IRepository<T> where T : class
 
     public void Delete(Guid id)
     {
-        var entity=GetById(id);
-        if (entity != null)
+        _items.RemoveAll(item =>
         {
-            _items.Remove(entity);
-            SaveChanges();
-        }
+            var thing = item.GetType().GetProperty("Id");
+            return thing != null && (Guid)thing.GetValue(item)! == id;
+        });
+        
+        SaveChanges();
     }
 
     private void SaveChanges()
