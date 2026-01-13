@@ -106,9 +106,9 @@ static void RunClientMenu(RestaurantService service, Client client)
             {
                 try {
                     service.PlaceOrder(client.Id, cart);
-                    Console.WriteLine("✅ Comanda plasata! Stocul a fost scazut.");
+                    Console.WriteLine("Comanda plasata! Stocul a fost scazut.");
                 } catch (Exception ex) {
-                    Console.WriteLine($"❌ EROARE: {ex.Message}");
+                    Console.WriteLine($"EROARE: {ex.Message}");
                 }
                 Console.ReadLine();
             }
@@ -266,7 +266,7 @@ static void HandleMenuMgmt(RestaurantService service)
 
             if (!inventory.Any())
             {
-                Console.WriteLine("⚠️ ATENTIE: Nu ai ingrediente definite in stoc! Preparatul va fi creat fara reteta.");
+                Console.WriteLine("ATENTIE: Nu ai ingrediente definite in stoc! Preparatul va fi creat fara reteta.");
             }
             else
             {
@@ -294,7 +294,7 @@ static void HandleMenuMgmt(RestaurantService service)
             }
 
             service.AddDish(name, price, cat, recipe);
-            Console.WriteLine("✅ Produs adăugat! Apasă Enter.");
+            Console.WriteLine("Produs adăugat! Apasă Enter.");
             Console.ReadLine();
         }
         
@@ -426,9 +426,9 @@ static void HandleOrderManagement(RestaurantService service, IRepository<User> u
             {
                 service.UpdateOrderStatus(selectedOrder.Id, newStatus.Value);
                 if (newStatus == OrderStatus.Canceled)
-                    Console.WriteLine("❌ Comanda a fost ANULATA. Va aparea cu rosu în lista.");
+                    Console.WriteLine("Comanda a fost ANULATA. Va aparea cu rosu în lista.");
                 else
-                    Console.WriteLine("✅ Status actualizat!");
+                    Console.WriteLine("Status actualizat!");
                 
                 Console.WriteLine("Apasa Enter.");
                 Console.ReadLine();
