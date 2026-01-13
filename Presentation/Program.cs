@@ -7,7 +7,8 @@ using AplicatieRestaurant.Domain.Enums;
 using AplicatieRestaurant.Domain.Interfaces;
 using AplicatieRestaurant.Infrastructure;
 using AplicatieRestaurant.Infrastructure.Repositories;
-
+using AplicatieRestaurant.Application;
+using AplicatieRestaurant.Domain.Entities;
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
@@ -105,9 +106,9 @@ static void RunClientMenu(RestaurantService service, Client client)
             {
                 try {
                     service.PlaceOrder(client.Id, cart);
-                    Console.WriteLine("Comanda plasata! Stocul a fost scazut.");
+                    Console.WriteLine("✅ Comanda plasata! Stocul a fost scazut.");
                 } catch (Exception ex) {
-                    Console.WriteLine($"EROARE: {ex.Message}");
+                    Console.WriteLine($"❌ EROARE: {ex.Message}");
                 }
                 Console.ReadLine();
             }
@@ -265,7 +266,7 @@ static void HandleMenuMgmt(RestaurantService service)
 
             if (!inventory.Any())
             {
-                Console.WriteLine("ATENTIE: Nu ai ingrediente definite in stoc! Preparatul va fi creat fara reteta.");
+                Console.WriteLine("⚠️ ATENTIE: Nu ai ingrediente definite in stoc! Preparatul va fi creat fara reteta.");
             }
             else
             {
@@ -293,7 +294,7 @@ static void HandleMenuMgmt(RestaurantService service)
             }
 
             service.AddDish(name, price, cat, recipe);
-            Console.WriteLine("Produs adăugat! Apasă Enter.");
+            Console.WriteLine("✅ Produs adăugat! Apasă Enter.");
             Console.ReadLine();
         }
         
@@ -423,11 +424,20 @@ static void HandleOrderManagement(RestaurantService service, IRepository<User> u
 
             if (newStatus.HasValue)
             {
-                service.UpdateOrderStatus(selectedOrder.Id, newStatus.Value);
-                if (newStatus == OrderStatus.Canceled)
-                    Console.WriteLine("Comanda a fost ANULATA. Va aparea cu rosu în lista.");
+                if (newStatus == OrderStatus.Canceled && selectedOrder.Status == OrderStatus.Completed)
+                {
+                    Console.WriteLine("\nEROARE: Nu poti anula o comanda care a fost deja livrata (Completed)!");
+                    Console.WriteLine("Operatiunea a fost blocata.");
+                }
                 else
-                    Console.WriteLine("Status actualizat!");
+                {
+                    service.UpdateOrderStatus(selectedOrder.Id, newStatus.Value);
+                    
+                    if (newStatus == OrderStatus.Canceled)
+                        Console.WriteLine("\nComanda a fost ANULATA.");
+                    else
+                        Console.WriteLine("\nStatus actualizat cu succes!");
+                }
                 
                 Console.WriteLine("Apasa Enter.");
                 Console.ReadLine();
