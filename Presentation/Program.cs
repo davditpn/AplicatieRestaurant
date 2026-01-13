@@ -55,7 +55,7 @@ static void HandleLogin(RestaurantService service, IRepository<User> userRepo)
 
     if (loggedUser == null)
     {
-        Console.WriteLine($"❌ {loggedUser.Username} nu exista sau parola este gresita! Apasa Enter!");
+        Console.WriteLine($"❌ {user} nu exista sau parola este gresita! Apasa Enter!");
         Console.ReadLine();
         return;
     }
