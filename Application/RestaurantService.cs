@@ -2,9 +2,9 @@
 using AplicatieRestaurant.Domain.Entities;
 using AplicatieRestaurant.Domain.Enums;
 using AplicatieRestaurant.Domain.Interfaces;
-using RestaurantApp.Domain.Entities;
+using AplicatieRestaurant.Domain.Entities;
 
-namespace RestaurantApp.Application;
+namespace AplicatieRestaurant.Application;
 
 public class RestaurantService
 {

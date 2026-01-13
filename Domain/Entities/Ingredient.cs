@@ -1,7 +1,7 @@
 ﻿using AplicatieRestaurant.Domain.Interfaces;
 using AplicatieRestaurant.Domain.Interfaces;
 
-namespace RestaurantApp.Domain.Entities;
+namespace AplicatieRestaurant.Domain.Entities;
 
 public class Ingredient : IEntity
 {
