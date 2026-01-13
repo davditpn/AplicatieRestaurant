@@ -22,7 +22,7 @@ using (var scope = host.Services.CreateScope())
     var userRepo = scope.ServiceProvider.GetRequiredService<IRepository<User>>();
     
     SeedData(service, userRepo);
-    RunUI(service, userRepo);
+    RunApp(service, userRepo);
 }   
 
 // static void RunUI (RestaurantService service, IRepository<User> userRepo)
@@ -118,87 +118,146 @@ static void HandleRegister(RestaurantService service)
     Console.ReadLine();
 }
 
-static void RunClient(RestaurantService service, IRepository<User> userRepo)
+// static void RunClient(RestaurantService service, IRepository<User> userRepo)
+// {
+//     var client = userRepo.GetAll().FirstOrDefault(u => u.Role == UserRole.Client);
+//     if (client == null)
+//     {
+//         Console.Write("Nu exista niciun cont de client. Restartati aplicatia");
+//         return;
+//     }
+//     
+//     Console.WriteLine($"\n--- BINE AI VENIT, {client.Username}! ---");
+//
+//     var menu = service.GetMenu().ToList();
+//     if (!menu.Any())
+//     {
+//         Console.Write("Meniul este gol.");
+//         return;
+//     }
+//
+//     var menuMap = new Dictionary<int, Dish>();
+//     int index = 1;
+//     Console.WriteLine("\n--- MENIU ---");
+//     foreach (var dish in menu)
+//     {
+//         Console.WriteLine($"{index}. {dish.Name} - {dish.Price} RON");
+//         menuMap[index] = dish;
+//         index++;
+//     }
+//
+//     var cart = new Dictionary<Guid, int>();
+//
+//     while (true)
+//     {
+//         Console.WriteLine("\nIntroduceti numarul produsului pentru a adauga (sau '0' pentru a finaliza):");
+//         Console.WriteLine("> ");
+//         var input = Console.ReadLine();
+//
+//         if (input == "0") break;
+//
+//         if (int.TryParse(input, out int selection) && menuMap.ContainsKey(selection))
+//         {
+//             var selectedDish = menuMap[selection];
+//             
+//             Console.Write($"Cantitate pentru {selectedDish.Name}: ");
+//             if (int.TryParse(Console.ReadLine(), out int quantity) && quantity > 0)
+//             {
+//                 if((cart.ContainsKey(selectedDish.Id)))
+//                         cart[selectedDish.Id] += quantity;
+//                 else
+//                     cart[selectedDish.Id] = quantity;
+//                 
+//                 Console.WriteLine($"-> Adaugat: {quantity} X {selectedDish.Name}");
+//             }
+//             else
+//             {
+//                 Console.WriteLine("Cantitate invalida.");
+//             }
+//         }
+//         else
+//         {
+//             Console.WriteLine("Produs invalid.");
+//         }
+//     }
+//
+//     if (cart.Any())
+//     {
+//         try
+//         {
+//             var order = service.PlaceOrder(client.Id, cart);
+//             Console.WriteLine("\n Comanda plasata cu succes!");
+//             Console.WriteLine($"ID Comanda: {order.Id}");
+//             Console.WriteLine($"Total de plata: {order.TotalPrice} RON");
+//         }
+//         catch (Exception ex)
+//         {
+//             Console.WriteLine($"Eroare la plasarea comenzii: {ex.Message}");
+//         }
+//     }
+//     else
+//     {
+//         {
+//             Console.WriteLine("Cosul este gol. Comanda anulata.");
+//         }
+//     }
+// }
+
+static void RunClientMenu(RestaurantService service, Client currentClient)
 {
-    var client = userRepo.GetAll().FirstOrDefault(u => u.Role == UserRole.Client);
-    if (client == null)
+    var menu = service.GetMenu().ToList();
+    var menuMap = new Dictionary<int, Dish>();
+    int idx = 1;
+    
+    foreach (var d in menu)
     {
-        Console.Write("Nu exista niciun cont de client. Restartati aplicatia");
-        return;
+        menuMap[idx++] = d;
     }
     
-    Console.WriteLine($"\n--- BINE AI VENIT, {client.Username}! ---");
-
-    var menu = service.GetMenu().ToList();
-    if (!menu.Any())
-    {
-        Console.Write("Meniul este gol.");
-        return;
-    }
-
-    var menuMap = new Dictionary<int, Dish>();
-    int index = 1;
-    Console.WriteLine("\n--- MENIU ---");
-    foreach (var dish in menu)
-    {
-        Console.WriteLine($"{index}. {dish.Name} - {dish.Price} RON");
-        menuMap[index] = dish;
-        index++;
-    }
-
     var cart = new Dictionary<Guid, int>();
 
     while (true)
     {
-        Console.WriteLine("\nIntroduceti numarul produsului pentru a adauga (sau '0' pentru a finaliza):");
-        Console.WriteLine("> ");
+        Console.Clear();
+        Console.WriteLine($"--- MENIU CLIENT: {currentClient.Username} ---");
+        Console.WriteLine($"Adresa de livrare: {currentClient.DeliveryAddress}");
+        Console.WriteLine("------------------------------");
+
+        foreach (var kvp in menuMap)
+        {
+            Console.WriteLine($"{kvp.Key}. {kvp.Value.Name} - {kvp.Value.Price} RON");
+        }
+        Console.WriteLine("0. Finalizeaza Comanda / Logout");
+        
+        if(cart.Any()) Console.WriteLine($"\n[Cos]: {cart.Count} produse.");
+        
+        Console.Write("\nAlege produs (nr): ");
         var input = Console.ReadLine();
 
-        if (input == "0") break;
+        if (input == "0")
+        {
+            if (cart.Any())
+            {
+                service.PlaceOrder(currentClient.Id, cart);
+                Console.WriteLine("Comanda trimisa! (Enter)");
+                Console.ReadLine();
+            }
+
+            break;
+        }
 
         if (int.TryParse(input, out int selection) && menuMap.ContainsKey(selection))
         {
-            var selectedDish = menuMap[selection];
-            
-            Console.Write($"Cantitate pentru {selectedDish.Name}: ");
+            var dish = menuMap[selection];
+            Console.WriteLine($"Cantitate pentru {dish.Name}: ");
             if (int.TryParse(Console.ReadLine(), out int quantity) && quantity > 0)
             {
-                if((cart.ContainsKey(selectedDish.Id)))
-                        cart[selectedDish.Id] += quantity;
-                else
-                    cart[selectedDish.Id] = quantity;
-                
-                Console.WriteLine($"-> Adaugat: {quantity} X {selectedDish.Name}");
+                if (!cart.ContainsKey(dish.Id))
+                {
+                    cart[dish.Id] = 0;
+                }
+                cart[dish.Id] += quantity;
             }
-            else
-            {
-                Console.WriteLine("Cantitate invalida.");
-            }
-        }
-        else
-        {
-            Console.WriteLine("Produs invalid.");
-        }
-    }
-
-    if (cart.Any())
-    {
-        try
-        {
-            var order = service.PlaceOrder(client.Id, cart);
-            Console.WriteLine("\n Comanda plasata cu succes!");
-            Console.WriteLine($"ID Comanda: {order.Id}");
-            Console.WriteLine($"Total de plata: {order.TotalPrice} RON");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Eroare la plasarea comenzii: {ex.Message}");
-        }
-    }
-    else
-    {
-        {
-            Console.WriteLine("Cosul este gol. Comanda anulata.");
         }
     }
 }
