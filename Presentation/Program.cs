@@ -140,8 +140,8 @@ static void RunManagerMenu(RestaurantService service, IRepository<User> userRepo
     while (true)
     {
         Console.Clear();
-        Console.WriteLine("--- MANAGER ---");
-        Console.WriteLine("1. Vezi Comenzi");
+        Console.WriteLine("--- PANOU MANAGER ---");
+        Console.WriteLine("1. GESTIONARE COMENZI (Statusuri)");
         Console.WriteLine("2. GESTIONARE MENIU (Preparate)");
         Console.WriteLine("3. GESTIONARE STOCURI (Ingrediente)");
         Console.WriteLine("0. Logout");
@@ -149,7 +149,7 @@ static void RunManagerMenu(RestaurantService service, IRepository<User> userRepo
         var ch = Console.ReadLine();
 
         if (ch == "0") break;
-        if (ch == "1") ShowOrders(service, userRepo);
+        if (ch == "1") HandleOrderManagement(service, userRepo);
         if (ch == "2") HandleMenuMgmt(service);
         if (ch == "3") HandleStockMgmt(service);
     }
@@ -325,11 +325,116 @@ static void HandleMenuMgmt(RestaurantService service)
     }
 }
 
-static void ShowOrders(RestaurantService service, IRepository<User> uRepo)
+static void HandleOrderManagement(RestaurantService service, IRepository<User> userRepo)
 {
-    foreach(var o in service.GetAllOrders())
-        Console.WriteLine($"Order {o.Id} - Status: {o.Status}");
-    Console.ReadLine();
+    while (true)
+    {
+        Console.Clear();
+        Console.WriteLine("=== GESTIONARE COMENZI ===");
+        
+        
+        var allOrders = service.GetAllOrders();
+        
+
+        var sortedOrders = allOrders
+            .OrderBy(o => o.Status == OrderStatus.Completed || o.Status == OrderStatus.Canceled)
+            .ThenByDescending(o => o.CreatedAt)
+            .ToList();
+
+        var orderMap = new Dictionary<int, Order>();
+        int index = 1;
+
+        if (!sortedOrders.Any())
+        {
+            Console.WriteLine("Nu exista comenzi.");
+        }
+        else
+        {
+            foreach (var order in sortedOrders)
+            {
+                var clientUser = userRepo.GetById(order.ClientId);
+                string clientName = clientUser != null ? clientUser.Username : "Necunoscut";
+
+                Console.Write($"[{index}] ");
+                Console.Write($"Data: {order.CreatedAt.ToLocalTime():HH:mm} | Client: {clientName} | Status: ");
+                
+                switch (order.Status)
+                {
+                    case OrderStatus.Created: 
+                        Console.ForegroundColor = ConsoleColor.Yellow; 
+                        break;
+                    case OrderStatus.Preparing: 
+                        Console.ForegroundColor = ConsoleColor.Cyan; 
+                        break;
+                    case OrderStatus.Ready: 
+                        Console.ForegroundColor = ConsoleColor.Green; 
+                        break;
+                    case OrderStatus.Completed: 
+                        Console.ForegroundColor = ConsoleColor.DarkGray; 
+                        break;
+                    case OrderStatus.Canceled: 
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        break;
+                }
+                
+                Console.WriteLine(order.Status);
+                Console.ResetColor();
+                
+                foreach (var item in order.Items)
+                {
+                    Console.WriteLine($"      - {item.Quantity} x {item.DishName}");
+                }
+                Console.WriteLine(new string('-', 60));
+
+                orderMap[index] = order;
+                index++;
+            }
+        }
+
+        Console.WriteLine("\nACTIUNI:");
+        Console.WriteLine("Introduce NUMARUL comenzii pentru a schimba statusul");
+        Console.WriteLine("0. Inapoi");
+        Console.Write("> ");
+        
+        var input = Console.ReadLine();
+        if (input == "0") break;
+
+        if (int.TryParse(input, out int sel) && orderMap.ContainsKey(sel))
+        {
+            var selectedOrder = orderMap[sel];
+            
+            Console.WriteLine($"\n--- Modificare Status Comanda #{sel} ---");
+            Console.WriteLine("1. Primita (Created)");
+            Console.WriteLine("2. In Preparare (Preparing)");
+            Console.WriteLine("3. Gata de Livrare (Ready)");
+            Console.WriteLine("4. Livrata / Finalizata (Completed)");
+            Console.WriteLine("5. Anuleaza Comanda (Canceled)");
+            Console.Write("Alege noul status: ");
+            
+            var sInput = Console.ReadLine();
+            OrderStatus? newStatus = sInput switch 
+            {
+                "1" => OrderStatus.Created,
+                "2" => OrderStatus.Preparing,
+                "3" => OrderStatus.Ready,
+                "4" => OrderStatus.Completed,
+                "5" => OrderStatus.Canceled,
+                _ => null
+            };
+
+            if (newStatus.HasValue)
+            {
+                service.UpdateOrderStatus(selectedOrder.Id, newStatus.Value);
+                if (newStatus == OrderStatus.Canceled)
+                    Console.WriteLine("❌ Comanda a fost ANULATA. Va aparea cu rosu în lista.");
+                else
+                    Console.WriteLine("✅ Status actualizat!");
+                
+                Console.WriteLine("Apasa Enter.");
+                Console.ReadLine();
+            }
+        }
+    }
 }
 
 static void SeedData(RestaurantService s, IRepository<User> u, IRepository<Ingredient> i)
