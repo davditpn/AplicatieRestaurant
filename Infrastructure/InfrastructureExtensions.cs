@@ -2,6 +2,7 @@
 using AplicatieRestaurant.Domain.Entities;
 using AplicatieRestaurant.Domain.Interfaces;
 using AplicatieRestaurant.Infrastructure.Repositories;
+using RestaurantApp.Domain.Entities;
 
 
 namespace AplicatieRestaurant.Infrastructure;
