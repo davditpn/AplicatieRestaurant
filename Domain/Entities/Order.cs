@@ -42,7 +42,7 @@ public class Order : IEntity
     public void AddItem(Dish dish, int quantity)
     {
         if (Status != OrderStatus.Created) 
-            throw new InvalidOperationException("Comanda nu mai poate fi modificată.");
+            throw new InvalidOperationException("Comanda nu mai poate fi modificata.");
         
         Items.Add(new OrderItem(dish.Id, dish.Name, dish.Price, quantity));
         RecalculateTotal();
@@ -51,6 +51,14 @@ public class Order : IEntity
     public void MarkAsPreparing() => Status = OrderStatus.Preparing;
     public void MarkAsReady() => Status = OrderStatus.Ready;
     public void CompleteOrder() => Status = OrderStatus.Completed;
+    
+    public void CancelOrder()
+    {
+        if (Status != OrderStatus.Completed)
+        {
+            Status = OrderStatus.Canceled;
+        }
+    }
 
     private void RecalculateTotal()
     {

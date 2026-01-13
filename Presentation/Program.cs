@@ -35,7 +35,7 @@ static void RunApp(RestaurantService service, IRepository<User> userRepo)
     while (true)
     {
         Console.Clear();
-        Console.WriteLine("=== RESTAURANT APP (Cu Stocuri) ===");
+        Console.WriteLine("=== RESTAURANT APP ===");
         Console.WriteLine("1. Login");
         Console.WriteLine("2. Sign Up");
         Console.WriteLine("0. Exit");

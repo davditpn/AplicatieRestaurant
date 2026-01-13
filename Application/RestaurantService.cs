@@ -132,14 +132,29 @@ public class RestaurantService
         return true;
     }
 
-    public void UpdateOrderStatus(Guid id, OrderStatus status) 
+    public void UpdateOrderStatus(Guid orderId, OrderStatus status)
     {
-        var o = _orderRepo.GetById(id);
-        if (o == null) return;
-        if (status == OrderStatus.Preparing) o.MarkAsPreparing();
-        if (status == OrderStatus.Ready) o.MarkAsReady();
-        if (status == OrderStatus.Completed) o.CompleteOrder();
-        _orderRepo.Update(o);
+        var order = _orderRepo.GetById(orderId);
+        if (order == null) return;
+        
+        switch (status)
+        {
+            case OrderStatus.Preparing:
+                order.MarkAsPreparing();
+                break;
+            case OrderStatus.Ready:
+                order.MarkAsReady();
+                break;
+            case OrderStatus.Completed:
+                order.CompleteOrder();
+                break;
+            case OrderStatus.Canceled:
+                order.CancelOrder();
+                break;
+        }
+
+        _orderRepo.Update(order);
+        _logger.LogInformation("Manager: Comanda {Id} -> {Status}", orderId, status);
     }
     
     public void DeleteOrder(Guid id) => _orderRepo.Delete(id);
