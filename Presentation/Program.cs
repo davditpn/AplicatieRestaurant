@@ -262,72 +262,139 @@ static void RunClientMenu(RestaurantService service, Client currentClient)
     }
 }
 
-static void RunManager(RestaurantService service)
+// static void RunManager(RestaurantService service)
+// {
+//     while (true)
+//     {
+//         Console.Clear();
+//         Console.WriteLine("--- PANOU MANAGER ---");
+//         var orders=service.GetAllOrders().OrderByDescending(o=>o.CreatedAt).ToList();
+//         if (!orders.Any())
+//         {
+//             Console.WriteLine("Nu exista comenzi active.");
+//         }
+//         else
+//         {
+//             foreach (var ord in orders)
+//             {
+//                 Console.WriteLine($"ID: {ord.Id}");
+//                 Console.WriteLine($"Data: {ord.CreatedAt.ToLocalTime()} | Status: {ord.Status} | Total: {ord.TotalPrice} RON");
+//                 Console.WriteLine("Produse:");
+//                 foreach (var item in ord.Items)
+//                 {
+//                     Console.WriteLine($"   - {item.Quantity}x {item.DishName}");
+//                 }
+//                 Console.WriteLine(new string('-',30));
+//             }
+//         }
+//         Console.WriteLine("\nActiuni:");
+//         Console.WriteLine("1. Modifica Status Comanda");
+//         Console.WriteLine("0. Inapoi la Meniul Principal");
+//         Console.Write("> ");
+//         var choice = Console.ReadLine();
+//         if(choice=="0") break;
+//         if (choice == "1")
+//         {
+//             Console.WriteLine("Introduceti ID-ul comenzii:");
+//             var idStr = Console.ReadLine();
+//             if (Guid.TryParse(idStr, out Guid orderId))
+//             {
+//                 Console.WriteLine("Status: 1.Preparing, 2.Ready, 3.Completed, 4.Canceled");
+//                 var sInput = Console.ReadLine();
+//                 OrderStatus? newStatus = sInput switch
+//                 {
+//                     "1" => OrderStatus.Preparing,
+//                     "2" => OrderStatus.Ready,
+//                     "3" => OrderStatus.Completed,
+//                     "4" => OrderStatus.Canceled,
+//                     _ => null
+//                 };
+//                 if(newStatus.HasValue)
+//                     service.UpdateOrderStatus(orderId, newStatus.Value);
+//             }
+//         }
+//
+//         if (choice == "2")
+//         {
+//             Console.WriteLine("Introduceti ID-ul comenzii de sters:");
+//             var idStr=Console.ReadLine();
+//             if (Guid.TryParse(idStr, out Guid orderId))
+//             {
+//                 Console.Write("Sigur doriti sa stergeti? (da/nu): ");
+//                 if (Console.ReadLine()?.ToLower() == "da")
+//                 {
+//                     service.DeleteOrder(orderId);
+//                     Console.WriteLine("Comanda a fost stearsa.");
+//                     Console.ReadLine();
+//                 }
+//             }
+//         }
+//     }
+// }
+
+static void RunManagerMenu(RestaurantService service, IRepository<User> userRepo)
 {
     while (true)
     {
         Console.Clear();
-        Console.WriteLine("--- PANOU MANAGER ---");
-        var orders=service.GetAllOrders().OrderByDescending(o=>o.CreatedAt).ToList();
-        if (!orders.Any())
-        {
-            Console.WriteLine("Nu exista comenzi active.");
-        }
+        Console.WriteLine("--- MENiU MANAGER ---");
+        
+        var orders = service.GetAllOrders().OrderByDescending(o => o.CreatedAt).ToList();
+        
+        if(!orders.Any()) Console.WriteLine("Nu exista comenzi");
         else
         {
-            foreach (var ord in orders)
+            foreach (var order in orders)
             {
-                Console.WriteLine($"ID: {ord.Id}");
-                Console.WriteLine($"Data: {ord.CreatedAt.ToLocalTime()} | Status: {ord.Status} | Total: {ord.TotalPrice} RON");
-                Console.WriteLine("Produse:");
-                foreach (var item in ord.Items)
+                var clientName = "Necunoscut";
+                var clientUser = userRepo.GetById(order.ClientId);
+                if (clientUser != null)
                 {
-                    Console.WriteLine($"   - {item.Quantity}x {item.DishName}");
+                    clientName = clientUser.Username;
                 }
-                Console.WriteLine(new string('-',30));
+                
+                Console.WriteLine($"ORDER: {order.Id}");
+                Console.WriteLine($"CLIENT: {clientName} (ID: {order.ClientId})");
+                Console.WriteLine($"Data: {order.CreatedAt.ToLocalTime()} | Status: {order.Status} | Total: {order.TotalPrice} RON");
+
+                foreach (var item in order.Items)
+                {
+                    Console.WriteLine($"   -{item.Quantity} x {item.DishName}");
+                }
+                
+                Console.WriteLine(new string('-', 40));
             }
         }
-        Console.WriteLine("\nActiuni:");
-        Console.WriteLine("1. Modifica Status Comanda");
-        Console.WriteLine("0. Inapoi la Meniul Principal");
-        Console.Write("> ");
+        
+        Console.WriteLine("\n1. Modifica Status | 2. Sterge Comanda | 0. Logout");
+        Console.WriteLine("> ");
         var choice = Console.ReadLine();
-        if(choice=="0") break;
+
+        if (choice == "0") break;
+
         if (choice == "1")
         {
-            Console.WriteLine("Introduceti ID-ul comenzii:");
-            var idStr = Console.ReadLine();
-            if (Guid.TryParse(idStr, out Guid orderId))
+            Console.Write("ID Comanda: ");
+            if (Guid.TryParse(Console.ReadLine(), out Guid oid))
             {
-                Console.WriteLine("Status: 1.Preparing, 2.Ready, 3.Completed, 4.Canceled");
-                var sInput = Console.ReadLine();
-                OrderStatus? newStatus = sInput switch
+                Console.Write("Status (1.Prep, 2.Ready, 3.Done, 4.Cancel): ");
+                var s =  Console.ReadLine();
+                OrderStatus? status = s switch
                 {
-                    "1" => OrderStatus.Preparing,
-                    "2" => OrderStatus.Ready,
+                    "1" => OrderStatus.Preparing, 
+                    "2" => OrderStatus.Ready, 
                     "3" => OrderStatus.Completed,
                     "4" => OrderStatus.Canceled,
                     _ => null
                 };
-                if(newStatus.HasValue)
-                    service.UpdateOrderStatus(orderId, newStatus.Value);
+                if(status.HasValue) service.UpdateOrderStatus(oid, status.Value);
             }
         }
 
         if (choice == "2")
         {
-            Console.WriteLine("Introduceti ID-ul comenzii de sters:");
-            var idStr=Console.ReadLine();
-            if (Guid.TryParse(idStr, out Guid orderId))
-            {
-                Console.Write("Sigur doriti sa stergeti? (da/nu): ");
-                if (Console.ReadLine()?.ToLower() == "da")
-                {
-                    service.DeleteOrder(orderId);
-                    Console.WriteLine("Comanda a fost stearsa.");
-                    Console.ReadLine();
-                }
-            }
+            Console.Write("ID Comanda: ");
+            if (Guid.TryParse(Console.ReadLine(), out Guid oid)) service.DeleteOrder(oid);
         }
     }
 }
@@ -345,8 +412,9 @@ static void SeedData(RestaurantService service, IRepository<User> userRepo)
 
     if (!userRepo.GetAll().Any())
     {
-        Console.WriteLine("Seeding Users...");
-        userRepo.Add(new Client("client1","pass","Acasa"));
-        userRepo.Add(new Manager("admin","admin"));
+        // Manager Default
+        userRepo.Add(new Manager("admin", "admin")); 
+        // Client de test
+        userRepo.Add(new Client("client1", "pass", "Strada Libertatii 1"));
     }
 }
