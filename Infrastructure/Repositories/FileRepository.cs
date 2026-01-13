@@ -24,11 +24,7 @@ public class FileRepository<T> : IRepository<T> where T : class, IEntity
 
     public T? GetById(Guid id)
     {
-        return _items.FirstOrDefault(i =>
-        {
-            var prop = i.GetType().GetProperty("Id");
-            return prop != null && (Guid)prop.GetValue(i) != id;
-        });
+        return _items.FirstOrDefault(i => i.Id == id);
     }
 
     public void Add(T entity)

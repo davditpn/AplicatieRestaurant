@@ -164,7 +164,7 @@ static void RunManagerMenu(RestaurantService service, IRepository<User> userRepo
     while (true)
     {
         Console.Clear();
-        Console.WriteLine("--- MENiU MANAGER ---");
+        Console.WriteLine("--- MENIU MANAGER ---");
         
         var orders = service.GetAllOrders().OrderByDescending(o => o.CreatedAt).ToList();
         
