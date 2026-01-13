@@ -491,20 +491,14 @@ static void HandleDeliveryConfig(RestaurantService service)
     }
 }
 
-// ==========================================================
-// 5. SEED DATA (Popularea Initiala)
-// ==========================================================
-
 static void SeedData(RestaurantService s, IRepository<User> u, IRepository<Ingredient> i, IRepository<RestaurantSettings> set)
 {
-    // 1. Admin Default
     if (!u.GetAll().Any()) 
     {
         u.Add(new Manager("admin", "admin"));
         u.Add(new Client("client", "pass", "Strada Test 1"));
     }
-
-    // 2. Ingrediente Default
+    
     if (!i.GetAll().Any())
     {
         s.AddIngredientToStock("Faina", "kg", 20);
@@ -514,8 +508,7 @@ static void SeedData(RestaurantService s, IRepository<User> u, IRepository<Ingre
         s.AddIngredientToStock("Carne Vita", "kg", 10);
         s.AddIngredientToStock("Chifla", "buc", 20);
     }
-
-    // 3. Meniu Default (Pizza)
+    
     if (!s.GetMenu().Any())
     {
         var faina = i.GetAll().FirstOrDefault(x => x.Name == "Faina");
@@ -543,10 +536,8 @@ static void SeedData(RestaurantService s, IRepository<User> u, IRepository<Ingre
             s.AddDish("Burger Vita", 45, DishCategory.MainCourse, retetaBurger);
         }
         
-        // Un produs fara reteta (disponibil mereu)
         s.AddDish("Apa Plata", 10, DishCategory.Beverage, new List<RecipeItem>());
     }
     
-    // 4. Setari Default
-    s.GetSettings(); // Se auto-creeaza daca nu exista
+    s.GetSettings();
 }

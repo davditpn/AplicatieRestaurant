@@ -49,7 +49,7 @@ public class RestaurantService
         s.DeliveryTimeMinutes = time;
         s.MinimumOrderAmount = minOrder;
         _settingsRepo.Update(s);
-        _logger.LogInformation("Setări livrare actualizate.");
+        _logger.LogInformation("Setari livrare actualizate.");
     }
     
     public Order PlaceOrder(Guid clientId, List<(Guid DishId, int Qty, string Note)> cartItems, bool isDelivery)

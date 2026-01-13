@@ -4,7 +4,7 @@ namespace AplicatieRestaurant.Domain.Entities;
 using System.Text.Json.Serialization;
 using AplicatieRestaurant.Domain.Enums;
 
-[JsonDerivedType(typeof(Client), typeDiscriminator: "client")] //pentru serializare si deserializare
+[JsonDerivedType(typeof(Client), typeDiscriminator: "client")]
 [JsonDerivedType(typeof(Manager), typeDiscriminator: "manager")]
 public abstract class User : IEntity
 {
@@ -13,7 +13,7 @@ public abstract class User : IEntity
     public string Password { get; protected set; }
     public UserRole Role { get; protected set; }
     
-    protected User(string username, string password, UserRole role) //constructor pt creare unde id-ul se da automat
+    protected User(string username, string password, UserRole role)
     {
         Id = Guid.NewGuid();
         Username = username;
@@ -21,7 +21,7 @@ public abstract class User : IEntity
         Role = role;
     }
 
-    protected User(Guid id, string username, string password, UserRole role) //constructor pt json cand exista deja un id
+    protected User(Guid id, string username, string password, UserRole role)
     {
         Id = id;
         Username = username;

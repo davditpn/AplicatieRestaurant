@@ -13,10 +13,9 @@ public class Order : IEntity
     [JsonInclude] public OrderStatus Status { get; private set; }
     [JsonInclude] public decimal TotalPrice { get; private set; }
     [JsonInclude] public List<OrderItem> Items { get; private set; } = new();
-
-    // --- CÂMPURI NOI PENTRU LIVRARE ---
-    [JsonInclude] public bool IsDelivery { get; private set; } // True=Livrare, False=Ridicare
-    [JsonInclude] public decimal DeliveryFee { get; private set; } // Taxa aplicată
+    
+    [JsonInclude] public bool IsDelivery { get; private set; }
+    [JsonInclude] public decimal DeliveryFee { get; private set; }
 
     public Order(Guid clientId, bool isDelivery, decimal deliveryFee)
     {
@@ -36,13 +35,12 @@ public class Order : IEntity
 
     public void AddItem(Dish dish, int quantity, string note)
     {
-        if (Status != OrderStatus.Created) throw new InvalidOperationException("Comanda blocată.");
+        if (Status != OrderStatus.Created) throw new InvalidOperationException("Comanda blocata.");
         
         Items.Add(new OrderItem(dish.Id, dish.Name, dish.Price, quantity, note));
         RecalculateTotal();
     }
-
-    // Metodele de status
+    
     public void MarkAsPreparing() => Status = OrderStatus.Preparing;
     public void MarkAsReady() => Status = OrderStatus.Ready;
     public void CompleteOrder() => Status = OrderStatus.Completed;
@@ -50,7 +48,6 @@ public class Order : IEntity
 
     private void RecalculateTotal()
     {
-        // Total = Produse + Taxa Livrare (daca e cazul)
         decimal itemsTotal = Items.Sum(i => i.Price * i.Quantity);
         TotalPrice = itemsTotal + DeliveryFee;
     }
