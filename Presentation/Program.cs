@@ -12,7 +12,7 @@ var host = Host.CreateDefaultBuilder(args)
     {
         services.AddInfrastructure();
         services.AddApplication();
-        services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Information));
+        services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
     })
     .Build();
 
@@ -25,21 +25,97 @@ using (var scope = host.Services.CreateScope())
     RunUI(service, userRepo);
 }   
 
-static void RunUI (RestaurantService service, IRepository<User> userRepo)
+// static void RunUI (RestaurantService service, IRepository<User> userRepo)
+// {
+//     while (true)
+//     {
+//         Console.WriteLine("\n=== APLICAȚIE RESTAURANT ===");
+//         Console.WriteLine("1. Client (Plasează comandă)");
+//         Console.WriteLine("2. Manager (Gestionează meniul și comenzile)");
+//         Console.WriteLine("0. Ieșire");
+//         Console.Write("Alege: ");
+//         var key= Console.ReadLine();
+//
+//         if (key == "0") break;
+//         if (key == "1") RunClient(service, userRepo);
+//         if (key == "2") RunManager(service);
+//     }
+// }
+
+static void RunApp(RestaurantService service, IRepository<User> userRepo)
 {
     while (true)
     {
-        Console.WriteLine("\n=== APLICAȚIE RESTAURANT ===");
-        Console.WriteLine("1. Client (Plasează comandă)");
-        Console.WriteLine("2. Manager (Gestionează meniul și comenzile)");
-        Console.WriteLine("0. Ieșire");
-        Console.Write("Alege: ");
-        var key= Console.ReadLine();
+        Console.Clear();
+        Console.WriteLine("=== RESTAURANT APP - BINE ATI VENIT ===");
+        Console.WriteLine("1. Authentification (Login)");
+        Console.WriteLine("2. Register New Client (Sign Up)");
+        Console.WriteLine("0. Exit");
+        Console.WriteLine("Alege optiunea: ");
+        
+        var input  = Console.ReadLine();
 
-        if (key == "0") break;
-        if (key == "1") RunClient(service, userRepo);
-        if (key == "2") RunManager(service);
+        if (input == "0") break;
+        if (input == "1") HandleLogin(service,  userRepo);
+        if (input == "2") HandleRegister(service);
     }
+}
+
+static void HandleLogin(RestaurantService service, IRepository<User> userRepo)
+{
+    Console.WriteLine("\n--- LOGIN ---");
+    Console.Write("Username: ");
+    var user = Console.ReadLine();
+    Console.Write("Password: ");
+    var password = Console.ReadLine();
+    
+    var loggedUser = service.Login(user, password);
+
+    if (loggedUser == null)
+    {
+        Console.WriteLine($"❌ {loggedUser.Username} nu exista sau parola este gresita! Apasa Enter!");
+        Console.ReadLine();
+        return;
+    }
+    
+    Console.WriteLine($"✅ Autentificat ca: {loggedUser.Username} ({loggedUser.Role})");
+    Thread.Sleep(1000);
+
+    if (loggedUser is Manager manager)
+    {
+        RunManagerMenu(service, userRepo);
+    }
+    else if (loggedUser is Client client)
+    {
+        RunClientMenu(service, client);
+    }
+}
+
+static void HandleRegister(RestaurantService service)
+{
+    Console.WriteLine("\n--- SIGN UP ---");
+    Console.WriteLine("Username dorit: ");
+    var user = Console.ReadLine();
+    if (string.IsNullOrWhiteSpace(user)) return;
+    
+    Console.Write("Parola: ");
+    var password = Console.ReadLine();
+    
+    Console.WriteLine("Adresa de livrare: ");
+    var address = Console.ReadLine();
+    
+    bool success = service.RegisterClient(user, password, address);
+
+    if (success)
+    {
+        Console.WriteLine("✅ Cont creat! Te poti loga acum.");
+    }
+    else
+    {
+        Console.WriteLine("❌ Eroare: Username-ul exista deja!");
+    }
+    Console.WriteLine("\nApasa Enter!");
+    Console.ReadLine();
 }
 
 static void RunClient(RestaurantService service, IRepository<User> userRepo)
