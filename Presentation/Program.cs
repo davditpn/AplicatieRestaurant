@@ -7,8 +7,7 @@ using AplicatieRestaurant.Domain.Enums;
 using AplicatieRestaurant.Domain.Interfaces;
 using AplicatieRestaurant.Infrastructure;
 using AplicatieRestaurant.Infrastructure.Repositories;
-using AplicatieRestaurant.Application;
-using AplicatieRestaurant.Domain.Entities;
+
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
