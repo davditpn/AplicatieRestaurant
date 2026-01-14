@@ -137,7 +137,7 @@ static void ShowClientHistory(RestaurantService service, Guid clientId)
     Console.WriteLine("--- ISTORICUL MEU ---");
     var history = service.GetClientHistory(clientId).ToList();
 
-    if (!history.Any()) Console.WriteLine("Nu ai nicio comandă anterioara.");
+    if (!history.Any()) Console.WriteLine("Nu ai nicio comanda anterioara.");
     else
     {
         foreach (var ord in history)
@@ -203,7 +203,7 @@ static void HandleClientOrder(RestaurantService service, Client client, List<(Gu
             if (!cart.Any()) { Console.WriteLine("Cosul este gol."); Console.ReadLine(); continue; }
             
             var settings = service.GetSettings();
-            Console.WriteLine($"\nCum dorești comanda?");
+            Console.WriteLine($"\nCum doresti comanda?");
             Console.WriteLine($"1. Ridicare Personala (0 RON)");
             Console.WriteLine($"2. Livrare la domiciliu (+{settings.DeliveryCost} RON, ~{settings.DeliveryTimeMinutes} min)");
             Console.Write("Alege (1 sau 2): ");
@@ -243,7 +243,7 @@ static void HandleClientOrder(RestaurantService service, Client client, List<(Gu
             Console.Write($"Cantitate pt {dish.Name}: ");
             if (int.TryParse(Console.ReadLine(), out int q) && q > 0)
             {
-                Console.Write("Observații speciale sau Enter: ");
+                Console.Write("Observatii speciale sau Enter: ");
                 var note = Console.ReadLine() ?? "";
                 
                 cart.Add((dish.Id, q, note));
@@ -401,7 +401,7 @@ static void HandleMenuMgmt(RestaurantService service)
             var recipe = new List<RecipeItem>();
             var inv = service.GetInventory().ToList();
             
-            if(!inv.Any()) Console.WriteLine("⚠️ Nu ai ingrediente in stoc! Reteta va fi goala.");
+            if(!inv.Any()) Console.WriteLine("Nu ai ingrediente in stoc! Reteta va fi goala.");
             else 
             {
                 while(true) {

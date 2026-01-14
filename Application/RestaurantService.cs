@@ -110,12 +110,37 @@ public class RestaurantService
     public IEnumerable<Ingredient> GetInventory() => _ingredientRepo.GetAll();
     
     public void AddIngredientToStock(string n, string u, double q) => _ingredientRepo.Add(new Ingredient(n,u,q));
-    public void UpdateStock(Guid id, double q) { var i = _ingredientRepo.GetById(id); if(i!=null){ i.StockQuantity=q; _ingredientRepo.Update(i); }}
-    public bool IsDishAvailable(Dish d) { foreach(var r in d.Recipe){ var s=_ingredientRepo.GetById(r.IngredientId); if(s==null || s.StockQuantity < r.QuantityRequired) return false; } return true; }
+
+    public void UpdateStock(Guid id, double q)
+    {
+        var i = _ingredientRepo.GetById(id);
+        if (i != null)
+        {
+            i.StockQuantity=q; _ingredientRepo.Update(i);
+        }
+    }
+
+    public bool IsDishAvailable(Dish d)
+    {
+        foreach (var r in d.Recipe)
+        {
+            var s=_ingredientRepo.GetById(r.IngredientId); 
+            if(s==null || s.StockQuantity < r.QuantityRequired) 
+                return false;
+        } 
+        return true;
+    }
     public void AddDish(string n, decimal p, DishCategory c, List<RecipeItem> r) => _dishRepo.Add(new Dish(n,"Desc",p,c,r));
     public void RemoveDish(Guid id) => _dishRepo.Delete(id);
     public User? Login(string u, string p) => _userRepo.GetAll().FirstOrDefault(x => x.Username==u && x.Password==p);
-    public bool RegisterClient(string u, string p, string a) { if(_userRepo.GetAll().Any(x=>x.Username==u))return false; _userRepo.Add(new Client(u,p,a)); return true; }
+
+    public bool RegisterClient(string u, string p, string a)
+    {
+        if(_userRepo.GetAll().Any(x=>x.Username==u))
+            return false; 
+        _userRepo.Add(new Client(u,p,a)); 
+        return true;
+    }
     
     public void UpdateOrderStatus(Guid oid, OrderStatus s) {
         var o = _orderRepo.GetById(oid); if(o==null)return;
