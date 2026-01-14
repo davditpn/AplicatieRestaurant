@@ -81,15 +81,24 @@ static void HandleRegister(RestaurantService service)
 {
     Console.WriteLine("\n--- SIGN UP ---");
     Console.Write("Username dorit: "); var user = Console.ReadLine();
-    if (string.IsNullOrWhiteSpace(user)) return;
+    if (string.IsNullOrWhiteSpace(user))
+    {
+        return;
+    }
     
     Console.Write("Parola: "); var pass = Console.ReadLine();
     Console.Write("Adresa Livrare: "); var addr = Console.ReadLine();
     
     bool success = service.RegisterClient(user, pass, addr);
 
-    if (success) Console.WriteLine("Cont creat! Te poti loga acum.");
-    else Console.WriteLine("Username-ul exista deja!");
+    if (success)
+    {
+        Console.WriteLine("Cont creat! Te poti loga acum.");
+    }
+    else
+    {
+        Console.WriteLine("Username-ul exista deja!");
+    }
     
     Console.ReadLine();
 }
