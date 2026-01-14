@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using AplicatieRestaurant.Application;
-using RestaurantApp.Application;
 
 namespace AplicatieRestaurant.Application;
 

@@ -1,6 +1,6 @@
 ﻿using AplicatieRestaurant.Domain.Interfaces;
 
-namespace RestaurantApp.Domain.Entities;
+namespace AplicatieRestaurant.Domain.Entities;
 
 public class RestaurantSettings : IEntity
 {
