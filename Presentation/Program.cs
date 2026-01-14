@@ -12,12 +12,7 @@ var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
         services.AddInfrastructure();
-        
-        services.AddSingleton<IRepository<Ingredient>>(p => new FileRepository<Ingredient>("ingredients.json"));
-        services.AddSingleton<IRepository<RestaurantSettings>>(p => new FileRepository<RestaurantSettings>("settings.json"));
-        
         services.AddApplication();
-        
         services.AddLogging(builder => builder.AddConsole().SetMinimumLevel(LogLevel.Warning));
     })
     .Build();
