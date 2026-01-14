@@ -165,11 +165,13 @@ static void ShowClientHistory(RestaurantService service, Guid clientId)
 static void HandleClientOrder(RestaurantService service, Client client, List<(Guid DishId, int Qty, string Note)> cart)
 {
     var menu = service.GetMenu().ToList();
-    var menuMap = new Dictionary<int, Dish>();
-    int idx = 1;
+    var menuMap = new Dictionary<int, Dish>(); 
 
     while (true)
     {
+        int idx = 1; 
+        menuMap.Clear();
+
         Console.Clear();
         Console.WriteLine("--- PLASARE COMANDA ---");
         
@@ -182,7 +184,8 @@ static void HandleClientOrder(RestaurantService service, Client client, List<(Gu
             Console.WriteLine($"{idx}. {dish.Name} - {dish.Price} RON {status}");
             Console.ResetColor();
             
-            menuMap[idx++] = dish;
+            menuMap[idx] = dish;
+            idx++;
         }
         
         if(cart.Any())
@@ -205,7 +208,7 @@ static void HandleClientOrder(RestaurantService service, Client client, List<(Gu
         if (input == "FIN")
         {
             if (!cart.Any()) { Console.WriteLine("Cosul este gol."); Console.ReadLine(); continue; }
-            
+
             var settings = service.GetSettings();
             Console.WriteLine($"\nCum doresti comanda?");
             Console.WriteLine($"1. Ridicare Personala (0 RON)");
@@ -241,19 +244,18 @@ static void HandleClientOrder(RestaurantService service, Client client, List<(Gu
             { 
                 Console.WriteLine("Produs indisponibil (lipsa ingrediente)."); 
                 Console.ReadLine(); 
-                continue; 
+                continue;
             }
 
             Console.Write($"Cantitate pt {dish.Name}: ");
             if (int.TryParse(Console.ReadLine(), out int q) && q > 0)
             {
-                Console.Write("Observatii speciale sau Enter: ");
+                Console.Write("Observații speciale (ex: fara ceapa) sau Enter: ");
                 var note = Console.ReadLine() ?? "";
                 
                 cart.Add((dish.Id, q, note));
             }
         }
-        idx = 1;
     }
 }
 
